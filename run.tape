@@ -1,8 +1,8 @@
 #!/usr/bin/env ducttape
 
 global {
-       JSALT_NPLM_data="/home/lanes/JSALT_NPLM_data"
-       python37="/usr/bin/python3.7"
+       JSALT_NPLM_data="/Users/hearth/Documents/UIUC/2020_Spring/Research_Spring/JSALT_NPLM_data"
+       python3="/usr/bin/python3"
 }
 
 task fst
@@ -101,7 +101,7 @@ task tokenize
 
 
 task analyze
-  < python37=@
+  < python3=@
   < analyzer=@fst
   < in=(Split: train=@tokenize dev=@tokenize test=@tokenize)
   < s2u=@fst
@@ -109,7 +109,7 @@ task analyze
   < lexc=@fst
   > out
 {
-	${python37} ${analyzer} --mode   t2a     \
+	${python3} ${analyzer} --mode   t2a     \
 	                        --corpus ${in}   \
 				--lexc   ${lexc} \
 				--s2u    ${s2u}  \
@@ -118,29 +118,29 @@ task analyze
 }
 
 task split_words
-   < python37=@
+   < python3=@
    < extract_splits=@fst
    < in=$out@analyze
    > out
 {
-	${python37} ${extract_splits} < ${in} > ${out}
+	${python3} ${extract_splits} < ${in} > ${out}
 }
 
 task venv
-   < python37="/usr/bin/python3.7"
+   < python3="/usr/bin/python3"
   :: url="git@github.com:neural-polysynthetic-language-modelling/tpr.git"
    > activate="bin/activate"
 {
 	git clone --depth 1 --single-branch --branch master ${url} code
 	mv code/requirements.txt .
-	${python37} -m venv .
+	${python3} -m venv .
 	source ${activate}
 	pip install -r requirements.txt
 }
 
 
 task tpr
-   < python37="/usr/bin/python3.7"
+   < python3="/usr/bin/python3"
   :: url="git@github.com:neural-polysynthetic-language-modelling/tpr.git"
    > create_alphabet="code/features.py"
    > seq2seq="code/seq2seq.py"
