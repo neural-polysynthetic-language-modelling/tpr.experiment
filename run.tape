@@ -1,8 +1,8 @@
 #!/usr/bin/env ducttape
 
 global {
-       JSALT_NPLM_data="/home/lanes/JSALT_NPLM_data"
-       python37="/usr/bin/python3.7"
+       JSALT_NPLM_data="/Users/marccanby/Documents/Datasets/JSALT_NPLM_data"
+       python37="/usr/local/bin/python3.8"
 }
 
 task fst
@@ -127,7 +127,7 @@ task split_words
 }
 
 task venv
-   < python37="/usr/bin/python3.7"
+   < python37="/usr/local/bin/python3.8"
   :: url="git@github.com:neural-polysynthetic-language-modelling/tpr.git"
    > activate="bin/activate"
 {
@@ -140,7 +140,7 @@ task venv
 
 
 task tpr
-   < python37="/usr/bin/python3.7"
+   < python37="/usr/local/bin/python3.8"
   :: url="git@github.com:neural-polysynthetic-language-modelling/tpr.git"
    > create_alphabet="code/features.py"
    > seq2seq="code/seq2seq.py"
