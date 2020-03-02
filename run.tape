@@ -135,7 +135,7 @@ task venv
 	mv code/requirements.txt .
 	${python37} -m venv .
 	source ${activate}
-	pip install -r requirements.txt
+	pip3 install -r requirements.txt
 }
 
 
