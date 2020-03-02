@@ -31,7 +31,7 @@ task europarl_tools
 task data
   :: data=$JSALT_NPLM_data
   :: lang=(Lang: ess)
-  :: condition=(Condition: all nt)
+  :: condition=(Condition: all nt tiny)
    > train
    > dev
    > test
@@ -62,6 +62,16 @@ task data
 		cat ${data}/Inuit-Yupik/ess/monolingual_corpus/${dir}/*.gold.ess/*.ess.txt >> ${train}	     
 
 	     done
+
+	   fi
+
+	   if [[ "${condition}" == "tiny" ]]; then
+
+	     for dir in elementary_primers/level1.kallagneghet-drumbeats ; do
+
+		cat ${data}/Inuit-Yupik/ess/monolingual_corpus/${dir}/*.gold.ess/*.ess.txt | head -n 10 >> ${train}	     
+
+	     done	   
 
 	   fi
 
@@ -189,7 +199,8 @@ task morphemes
   :: max_characters=(Lang: ess=22)
   :: start_of_morpheme=(Lang: ess='<morpheme>')
   :: end_of_morpheme=(Lang: ess='</morpheme>')  
-   < in=(Lang: ess=$out@split_words[Condition:all,Split:train])
+#   < in=(Lang: ess=$out@split_words[Condition:all,Split:train])
+   < in=(Lang: ess=$out@split_words[Condition:tiny,Split:train])
    > out
    > log
 {
@@ -249,8 +260,8 @@ task eval_morpheme_vectors
 
 
 plan {
-     reach eval_morpheme_vectors via (MV_Hidden: 64 128 256) * (MV_Batch: 2000) * (MV_Epochs: 100 1000) * (MV_Layers: 1 2 3) * (MV_LR: 0.01) * (Lang: ess) * (Condition: all) 
+     reach eval_morpheme_vectors via (MV_Hidden: 128) * (MV_Batch: 2000) * (MV_Epochs: 100) * (MV_Layers: 1) * (MV_LR: 0.01) * (Lang: ess) * (Condition: tiny) 
 
-     reach split_words via (Lang: ess) * (Condition: all) * (Split: train dev)
+#     reach split_words via (Lang: ess) * (Condition: all) * (Split: train dev)
      
 }
