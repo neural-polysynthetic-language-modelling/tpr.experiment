@@ -1,24 +1,27 @@
 #!/usr/bin/env ducttape
 
+# Define global variables
 global {
        JSALT_NPLM_data="/home/lanes/JSALT_NPLM_data"
        python37="/usr/bin/python3.7"
 }
 
+# Clone the finite-state analyzer and compile it
 task fst
   :: url="git@github.com:SaintLawrenceIslandYupik/finite_state_morphology.git"
    > analyzer="fst/lexicon/lexicon.py"
    > extract_splits="fst/lexicon/extract-split-words.py"
    > extract_analyses="fst/lexicon/extract-analyzed-words.py"
    > lexc="fst/ess.lexc"
-   > s2u="fst/ess.fomabin"
-   > i2u="fst/ess.underlying.fomabin"
+   > s2u="fst/ess.fomabin"             # Surface form to underlying form analyzer
+   > i2u="fst/ess.underlying.fomabin"  # Intermediate form to underlying form analyzer
 {
 	git clone --depth 1 --single-branch --branch jsalt2019 ${url} fst
 	cd fst
 	make ess.fomabin ess.underlying.fomabin
 }
 
+# Clone sentence-splitting code
 task europarl_tools
   :: url="git@github.com:dowobeha/europarl_tools.git"
    > tokenizer="tools/tools/tokenizer.perl"
@@ -27,7 +30,7 @@ task europarl_tools
 	git clone --depth 1 --single-branch --branch master ${url} tools
 }
 
-
+# Gather data into train, dev, and test splits
 task data
   :: data=$JSALT_NPLM_data
   :: lang=(Lang: ess)
@@ -78,7 +81,7 @@ task data
 	fi
 }
 
-
+# Perform sentence splitting
 task split_sentences
    < script=$split_sentences@europarl_tools
    < raw_train=$train@data
@@ -94,6 +97,7 @@ task split_sentences
 	${script} -l ${lang} < ${raw_test}  | grep -v '<P>' > ${test}
 }
 
+# Take Yupik sentences and tokenize into words
 task tokenize
    < script=$tokenizer@europarl_tools
    < train_in=$train@split_sentences
@@ -109,7 +113,7 @@ task tokenize
 	${script} -l ${lang} < ${test_in}  > ${test}
 }
 
-
+# Run finite-state analyzer over Yupik words (outputs 3 forms per word)
 task analyze
   < python37=@
   < analyzer=@fst
@@ -127,6 +131,7 @@ task analyze
 				--output ${out}
 }
 
+# For each analyzer Yupik word, extract the part of the analysis that we care about
 task split_words
    < python37=@
    < extract_splits=@fst
@@ -136,8 +141,9 @@ task split_words
 	${python37} ${extract_splits} < ${in} > ${out}
 }
 
+# Set up a Python3.7 virtual environment and install dependencies using pip3
 task venv
-   < python37="/usr/bin/python3.7"
+   < python37=@
   :: url="git@github.com:neural-polysynthetic-language-modelling/tpr.git"
    > activate="bin/activate"
 {
@@ -148,9 +154,9 @@ task venv
 	pip3 install -r requirements.txt
 }
 
-
+# Clone the TPR repo
 task tpr
-   < python37="/usr/bin/python3.7"
+   < python37=@
   :: url="git@github.com:neural-polysynthetic-language-modelling/tpr.git"
    > create_alphabet="code/features.py"
    > seq2seq="code/seq2seq.py"
@@ -162,6 +168,7 @@ task tpr
 	git clone --depth 1 --single-branch --branch master ${url} code
 }
 
+# Create the alphabet
 task alphabet
    < activate=@venv
    < create_alphabet=@tpr
@@ -173,6 +180,7 @@ task alphabet
 	python3 ${create_alphabet} ${in} ${out} &> ${log}
 }
 
+# Create and pickle Yupik tokenizer object
 task tokenizer
    < activate=@venv
    < tokenizer=@tpr
@@ -190,6 +198,7 @@ task tokenizer
 			     &> ${log}
 }
 
+# Create a dictionary of Yupik morphemes, then pickle it
 task morphemes
    < activate=@venv
    < script=$corpus@tpr
@@ -216,6 +225,14 @@ task morphemes
 			  &> ${log}
 }
 
+# Train an autoencoder using the dictionary of Yupik morphemes
+#
+# For each Yupik morpheme, this calculates a gold-standard TPR,
+# then uses that as the input to the autoencoder,
+# and also uses it as the correct answer.
+#
+# This uses Unbinding Loss.
+#
 task morpheme_vectors
    < activate=@venv
    < script=$autoencoder@tpr
@@ -242,6 +259,7 @@ task morpheme_vectors
 
 }
 
+# Run autoencoder
 task eval_morpheme_vectors
    < activate=@venv
    < script=$autoencoder@tpr
