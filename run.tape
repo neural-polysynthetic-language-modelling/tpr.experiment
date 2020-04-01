@@ -164,8 +164,11 @@ task tpr
    > tokenizer="code/tokenizer.py"
    > ess_alphabet_tsv="code/ess.vocab.tsv"
    > autoencoder="code/autoencoder.py"
+   > databuilder="code/databuilder.py"
+   > datafilterer="code/datafilter.py"
 {
-	git clone --depth 1 --single-branch --branch master ${url} code
+	#git clone --depth 1 --single-branch --branch master ${url} code
+    cp -r /home/marcec2/tpr code
 }
 
 # Create the alphabet
@@ -225,6 +228,38 @@ task morphemes
 			  &> ${log}
 }
 
+task databuilder
+  < activate=@venv
+  < script=$databuilder@tpr
+  :: blacklist_char=(Lang: ess='*')
+  < in1=(Split: train=@tokenize dev=@tokenize test=@tokenize)
+  < in2=(Lang: ess=$out@split_words[Condition:all])
+  > out
+{
+    source ${activate}
+    python3 ${script} --blacklist_character "${blacklist_char}" \
+              --raw_sentences ${in1} \
+              --segmented_sentences ${in2} \
+              --output_file ${out}
+}
+
+task datafilterer
+  < activate=@venv
+  < script=$datafilterer@tpr
+  < in1=$out@databuilder[Lang:ess,Condition:all,Split:train]
+  < in2=$out@databuilder[Lang:ess,Condition:all,Split:dev]
+  < in3=$out@databuilder[Lang:ess,Condition:all,Split:test]
+  > dev
+  > test
+{
+    source ${activate}
+    python3 ${script} --train_pairs ${in1} \
+              --dev_pairs ${in2} \
+              --test_pairs ${in3} \
+              --dev_output_file ${dev} \
+              --test_output_file ${test}
+}
+
 # Train an autoencoder using the dictionary of Yupik morphemes
 #
 # For each Yupik morpheme, this calculates a gold-standard TPR,
@@ -278,8 +313,10 @@ task eval_morpheme_vectors
 
 
 plan {
-     reach eval_morpheme_vectors via (MV_Hidden: 128) * (MV_Batch: 2000) * (MV_Epochs: 100) * (MV_Layers: 1) * (MV_LR: 0.01) * (Lang: ess) * (Condition: tiny) 
+#      reach eval_morpheme_vectors via (MV_Hidden: 128) * (MV_Batch: 2000) * (MV_Epochs: 100) * (MV_Layers: 1) * (MV_LR: 0.01) * (Lang: ess) * (Condition: tiny)
 
-#     reach split_words via (Lang: ess) * (Condition: all) * (Split: train dev)
+#     reach split_words via (Lang: ess) * (Condition: all) * (Split: train dev test)
+
+    reach datafilterer via (Lang: ess) * (Condition: all) * (Split: train dev test)
      
 }
