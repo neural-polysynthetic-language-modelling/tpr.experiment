@@ -168,7 +168,7 @@ task tpr
    > datafilterer="code/datafilter.py"
 {
 	#git clone --depth 1 --single-branch --branch master ${url} code
-    cp -r /home/marcec2/tpr code
+    cp -r /home/yoder6/tpr code
 }
 
 # Create the alphabet
@@ -249,10 +249,12 @@ task datafilterer
   < in1=$out@databuilder[Lang:ess,Condition:all,Split:train]
   < in2=$out@databuilder[Lang:ess,Condition:all,Split:dev]
   < in3=$out@databuilder[Lang:ess,Condition:all,Split:test]
+  > train="train"
   > dev
   > test
 {
     source ${activate}
+    cp ${in1} train
     python3 ${script} --train_pairs ${in1} \
               --dev_pairs ${in2} \
               --test_pairs ${in3} \
